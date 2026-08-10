@@ -24,10 +24,35 @@ type EEBus struct {
 
 	connector *eebus.Connector
 
-	ma  *eebus.Entity[measurements]
-	lpc *eebus.Entity[ucapi.EgLPCInterface]
-	lpp *eebus.Entity[ucapi.EgLPPInterface]
+	ma        *eebus.Entity[measurements]
+	lpc       *eebus.Entity[ucapi.EgLPCInterface]
+	lpp       *eebus.Entity[ucapi.EgLPPInterface]
+	scenarios maScenarios
 }
+
+// maScenarios holds the spec scenario numbers for the active monitoring use case.
+// MGCP and MPC use different scenario numbers for the same physical quantity.
+type maScenarios struct {
+	power    uint
+	energy   uint
+	currents uint
+	voltages uint
+}
+
+var (
+	mpcScenarios = maScenarios{
+		power:    eebus.MPCPower,
+		energy:   eebus.MPCEnergyConsumed,
+		currents: eebus.MPCCurrentPerPhase,
+		voltages: eebus.MPCVoltagePerPhase,
+	}
+	mgcpScenarios = maScenarios{
+		power:    eebus.MGCPPower,
+		energy:   eebus.MGCPEnergyConsumed,
+		currents: eebus.MGCPCurrentPerPhase,
+		voltages: eebus.MGCPVoltagePerPhase,
+	}
+)
 
 type measurements interface {
 	eebusapi.UseCaseBaseInterface
@@ -69,10 +94,12 @@ func NewEEBus(ctx context.Context, ski, ip string, usage *templates.Usage) (api.
 	// Use MGCP only for explicit grid usage, MPC for everything else (default)
 	useCase := "mpc"
 	mm := measurements(ma.MaMPCInterface)
+	scenarios := mpcScenarios
 
 	if usage != nil && *usage == templates.UsageGrid {
 		useCase = "mgcp"
 		mm = ma.MaMGCPInterface
+		scenarios = mgcpScenarios
 	}
 
 	eg := inst.EnergyGuard()
@@ -83,6 +110,7 @@ func NewEEBus(ctx context.Context, ski, ip string, usage *templates.Usage) (api.
 		ma:        eebus.NewEntity(mm),
 		lpc:       eebus.NewEntity(eg.EgLPCInterface),
 		lpp:       eebus.NewEntity(eg.EgLPPInterface),
+		scenarios: scenarios,
 	}
 
 	if err := inst.RegisterDevice(ski, ip, c); err != nil {
@@ -114,17 +142,17 @@ func NewEEBus(ctx context.Context, ski, ip string, usage *templates.Usage) (api.
 var _ api.Meter = (*EEBus)(nil)
 
 func (c *EEBus) CurrentPower() (float64, error) {
-	return c.ma.Read(measurements.Power)
+	return c.ma.Read(measurements.Power, c.scenarios.power)
 }
 
 var _ api.MeterEnergy = (*EEBus)(nil)
 
 func (c *EEBus) TotalEnergy() (float64, error) {
-	return c.ma.Read(measurements.EnergyConsumed)
+	return c.ma.Read(measurements.EnergyConsumed, c.scenarios.energy)
 }
 
-func (c *EEBus) readPhases(update func(mm measurements, entity spineapi.EntityRemoteInterface) ([]float64, error)) (float64, float64, float64, error) {
-	res, err := c.ma.Read(update)
+func (c *EEBus) readPhases(update func(mm measurements, entity spineapi.EntityRemoteInterface) ([]float64, error), scenario uint) (float64, float64, float64, error) {
+	res, err := c.ma.Read(update, scenario)
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -147,20 +175,20 @@ func (c *EEBus) readPhases(update func(mm measurements, entity spineapi.EntityRe
 var _ api.PhaseCurrents = (*EEBus)(nil)
 
 func (c *EEBus) Currents() (float64, float64, float64, error) {
-	return c.readPhases(measurements.CurrentPerPhase)
+	return c.readPhases(measurements.CurrentPerPhase, c.scenarios.currents)
 }
 
 var _ api.PhaseVoltages = (*EEBus)(nil)
 
 func (c *EEBus) Voltages() (float64, float64, float64, error) {
-	return c.readPhases(measurements.VoltagePerPhase)
+	return c.readPhases(measurements.VoltagePerPhase, c.scenarios.voltages)
 }
 
 var _ api.Dimmer = (*EEBus)(nil)
 
 // Dimmed implements the api.Dimmer interface
 func (c *EEBus) Dimmed() (bool, error) {
-	limit, err := c.lpc.Read(ucapi.EgLPCInterface.ConsumptionLimit)
+	limit, err := c.lpc.Read(ucapi.EgLPCInterface.ConsumptionLimit, eebus.LPCLimit)
 	if err != nil {
 		return false, err
 	}
@@ -183,14 +211,14 @@ func (c *EEBus) Dim(dim bool) error {
 		value = limit
 	}
 
-	return c.lpc.WriteArg(ucapi.EgLPCInterface.WriteConsumptionLimit, ucapi.LoadLimit{Value: value, IsActive: dim})
+	return c.lpc.WriteArg(ucapi.EgLPCInterface.WriteConsumptionLimit, ucapi.LoadLimit{Value: value, IsActive: dim}, eebus.LPCLimit)
 }
 
 var _ api.Curtailer = (*EEBus)(nil)
 
 // CurtailedPercent implements the api.Curtailer interface
 func (c *EEBus) CurtailedPercent() (int, error) {
-	limit, err := c.lpp.Read(ucapi.EgLPPInterface.ProductionLimit)
+	limit, err := c.lpp.Read(ucapi.EgLPPInterface.ProductionLimit, eebus.LPPLimit)
 	if err != nil {
 		return 0, err
 	}
@@ -223,5 +251,5 @@ func (c *EEBus) SetCurtailPercent(percent int) error {
 		}
 	}
 
-	return c.lpp.WriteArg(ucapi.EgLPPInterface.WriteProductionLimit, ucapi.LoadLimit{Value: value, IsActive: curtail})
+	return c.lpp.WriteArg(ucapi.EgLPPInterface.WriteProductionLimit, ucapi.LoadLimit{Value: value, IsActive: curtail}, eebus.LPPLimit)
 }
