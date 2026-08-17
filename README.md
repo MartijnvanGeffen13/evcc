@@ -1,3 +1,105 @@
+Hi everyone,
+
+I recently submitted a pull request that introduces Dynamic MinSOC based on Solar Forecast, and I'd love your feedback and support.
+
+👉 Pull Request: https://github.com/evcc-io/evcc/pull/32688
+
+The feature is already available for testing on Ubuntu using the build attached to the pull request.
+
+# Why is this needed?
+
+Many EV owners face the same challenge, especially during the darker months of the year.
+
+You arrive home from a trip with a low battery and plug in your vehicle. The question becomes:
+How much should EVCC charge now, and how much capacity should be reserved for today's or tomorrow's solar production? If i fast charge how will i stop it when the sun starts shining.
+
+After all, solar energy is typically the cheapest energy available.
+
+Today, EVCC uses a static MinSOC value. While this works well in summer, it can be less efficient during winter:
+
+- A high MinSOC may cause unnecessary grid charging when you arrive home.
+- A low MinSOC may leave the vehicle insufficiently charged for an unexpected trip.
+- Solar production later in the day may go unused because the battery is already full.
+- Family members and other drivers often don't want to manually adjust charging settings after every trip.
+
+# Introducing Dynamic MinSOC
+
+### The concept is simple:
+
+EVCC automatically adjusts the effective MinSOC based on the solar forecast.
+
+This allows you to keep your vehicle in Solar mode while Dynamic MinSOC automatically determines how much fast charging is required.
+
+## Example Scenarios: Vehicle returns with a low battery.
+### ☀️ High Solar Forecast
+
+- Significant solar production is expected.
+- EVCC fast charges only to a low MinSOC level (for example 5% SOC).
+- Maximum battery capacity remains available for solar charging.
+
+### 🌤️ Medium Solar Forecast
+
+- Moderate solar production is expected.
+- EVCC fast charges to a medium MinSOC level (for example 40% SOC).
+- The vehicle is asap ready for medium-distance trips while still reserving enough capacity for solar energy.
+
+### ☁️ Low Solar Forecast
+Little solar production is expected.
+EVCC charges more aggressively from the grid to ensure the vehicle is ready when needed. (for example 80% SOC).
+Only a small amount of battery capacity is reserved for available solar generation.
+
+# The Result
+
+A smarter balance between:
+
+- Cost of Fuel
+- Vehicle readiness
+- Self-consumption of solar energy
+- Reduced manual configuration
+- Better charging efficiency throughout the year
+
+## Key Benefits
+
+✅ No need to manually adjust charging settings after every trip
+
+✅ Optimizes charging behavior during winter and low-production periods
+
+✅ Maximizes the use of available solar energy
+
+✅ Works with existing weather forecast integrations
+
+✅ Configurable solar thresholds (Low, Medium, High)
+
+✅ Configurable MinSOC targets for each forecast level
+
+✅ Existing MinSOC behavior remains supported and can override dynamic settings if required
+
+✅ Configurable per vehicle, allowing adjustment for different battery sizes and driving patterns
+
+# How You Can Help
+
+If this functionality would be valuable for your setup, please:
+
+- Test the build attached to the pull request
+- Share your feedback and real-world experiences
+- Upvote This discussion to help demonstrate community interest
+
+Community feedback and adoption are important factors in determining which enhancements are prioritized, so every test and every vote helps.
+
+Thank you for taking the time to review and test the feature. My goal is to make EV charging a little smarter, more automated, and more solar-friendly for everyone.
+
+# Screenshots:
+
+Extra configuration options in weather prediction settings:
+<img width="492" height="524" alt="image" src="https://github.com/user-attachments/assets/6e6ee048-add1-4e5a-ad97-e65337b9474c" />
+
+
+Car settings for overwrite or active setting:
+<img width="843" height="521" alt="image" src="https://github.com/user-attachments/assets/0bbdef2d-2b59-4245-9cc7-401a76b4f7e1" />
+
+
+--------------------
+
 # evcc 🚘☀️
 
 [![Build](https://github.com/evcc-io/evcc/actions/workflows/nightly.yml/badge.svg)](https://github.com/evcc-io/evcc/actions/workflows/nightly.yml)
