@@ -2,6 +2,8 @@
 
 This file provides guidance to AI coding agents when working with code in this repository.
 
+Read [COPILOTNOTES.md](COPILOTNOTES.md) for verified repository-specific learnings. Add concise, reusable learnings there as they are discovered.
+
 ## Project Overview
 
 - evcc is an extensible EV Charge Controller and home energy management system written in Go with a Vue.js frontend
