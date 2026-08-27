@@ -1,3 +1,5 @@
+UP2DATE DEB files are in the release folder so you can directly download and install this addon
+
 Hi everyone,
 
 I recently submitted a pull request that introduces Dynamic MinSOC based on Solar Forecast, and I'd love your feedback and support.
