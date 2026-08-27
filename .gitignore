@@ -33,7 +33,6 @@ builddir
 dist
 flags
 node_modules
-release
 *.inc
 soc-server
 ca-cert.srl
