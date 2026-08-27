@@ -28,6 +28,7 @@ testdata/**/*
 evcc
 evcc.exe
 evcc_*
+!/release/*.deb
 linux-*.Dockerfile
 builddir
 dist
