@@ -86,7 +86,7 @@ type Site struct {
 	prioritySoc             float64  // prefer battery up to this Soc
 	bufferSoc               float64  // continue charging on battery above this Soc
 	bufferStartSoc          float64  // start charging on battery above this Soc
-	batteryDischargeControl bool     // prevent battery discharge for fast and planned charging
+	batteryDischargeControl bool     // prevent battery discharge while EV charging is active
 	batteryGridChargeLimit  *float64 // grid charging limit
 	batteryGridDischarge    bool     // allow battery discharge to grid (experimental)
 
@@ -1281,7 +1281,7 @@ func (site *Site) update(lp updater) {
 	// update battery after reading meters to ensure that (modbus) connection is open
 	batteryGridChargeActive := site.batteryGridChargeActive(rate)
 	site.publish(keys.BatteryGridChargeActive, batteryGridChargeActive)
-	site.updateBatteryMode(batteryGridChargeActive, rate)
+	site.updateBatteryMode(batteryGridChargeActive)
 
 	// re-evaluate against the updated loadpoint state
 	site.publishSuggestions()
